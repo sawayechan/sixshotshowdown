@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./66S-favicon.png" />
+    <title>Six Shot Showdown</title>
+    <style>
+      :root {
+        --bg: #051019;
+        --panel: rgba(4, 18, 31, 0.82);
+        --accent: #ffb429;
+        --text: #f5f8ff;
+        --muted: #a8b5ce;
+        --good: #75ffbf;
+        --bad: #ff8d8d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 50% 12%, #10304f 0%, var(--bg) 60%);
+      }
+
+      #app {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+
+      #hud {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(126, 189, 255, 0.18);
+        border-radius: 12px;
+        padding: 8px 10px;
+        min-width: 130px;
+        min-height: 76px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        backdrop-filter: blur(3px);
+        transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, opacity 180ms ease;
+        opacity: 0.72;
+      }
+
+      .player-card {
+        background: rgba(7, 30, 49, 0.74);
+        border-color: rgba(84, 184, 255, 0.3);
+      }
+
+      .cpu-card {
+        background: rgba(43, 24, 10, 0.74);
+        border-color: rgba(255, 179, 87, 0.3);
+      }
+
+      .card.active {
+        opacity: 1;
+        transform: translateY(-1px);
+      }
+
+      .player-card.active {
+        box-shadow: 0 0 0 2px rgba(84, 184, 255, 0.28);
+      }
+
+      .cpu-card.active {
+        box-shadow: 0 0 0 2px rgba(255, 179, 87, 0.28);
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .value {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      #centerPanel {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 12px;
+        background: rgba(34, 39, 45, 0.72);
+        border: 1px solid rgba(198, 208, 220, 0.34);
+        border-radius: 12px;
+        padding: 8px 16px;
+        min-width: 130px;
+        min-height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        pointer-events: none;
+        z-index: 5;
+        box-shadow: 0 0 0 1px rgba(90, 101, 113, 0.18) inset;
+      }
+
+      #centerPanel .value {
+        font-size: 18px;
+      }
+
+      #message {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 20px;
+        min-width: min(92vw, 560px);
+        text-align: center;
+        background: rgba(6, 14, 23, 0.84);
+        border: 1px solid rgba(158, 198, 255, 0.22);
+        border-radius: 14px;
+        padding: 10px 14px;
+        z-index: 6;
+        transition: background 160ms ease, border-color 160ms ease;
+      }
+
+      #message.player-turn {
+        background: rgba(8, 35, 56, 0.9);
+        border-color: rgba(84, 184, 255, 0.44);
+      }
+
+      #message.cpu-turn {
+        background: rgba(58, 33, 16, 0.9);
+        border-color: rgba(255, 179, 87, 0.44);
+      }
+
+      #message.neutral-turn {
+        background: rgba(6, 14, 23, 0.84);
+        border-color: rgba(158, 198, 255, 0.22);
+      }
+
+      #menu {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, rgba(0, 4, 12, 0.35), rgba(0, 4, 12, 0.75));
+        z-index: 8;
+      }
+
+      #splash {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, rgba(6, 17, 30, 0.94), rgba(6, 17, 30, 0.88));
+        z-index: 12;
+        transition: opacity 420ms ease;
+      }
+
+      #splashCard {
+        width: min(92vw, 540px);
+        min-height: min(62vh, 460px);
+        text-align: center;
+        padding: 34px 22px;
+        border-radius: 14px;
+        border: 1px solid rgba(184, 208, 236, 0.28);
+        background: rgba(15, 27, 40, 0.78);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      #splash h2 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 5vw, 44px);
+      }
+
+      #splash p {
+        margin: 0;
+        color: #bfd0e4;
+      }
+
+      #splash .line2 {
+        margin-top: 8px;
+      }
+
+      #splash .line3 {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #9eb4cc;
+      }
+
+      #splash.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #menuCard {
+        width: min(92vw, 520px);
+        background: rgba(4, 18, 31, 0.92);
+        border: 1px solid rgba(255, 180, 41, 0.42);
+        border-radius: 16px;
+        padding: 18px;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 4px 0 8px;
+        font-size: clamp(28px, 5vw, 42px);
+      }
+
+      #menu p {
+        margin: 0 0 10px;
+        color: var(--muted);
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 22px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #10131a;
+        background: linear-gradient(180deg, #ffd48a 0%, var(--accent) 100%);
+        cursor: pointer;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .good {
+        color: var(--good);
+      }
+
+      .bad {
+        color: var(--bad);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="hud">
+        <div id="playerCard" class="card player-card">
+          <div class="label">Player</div>
+          <div id="playerTotal" class="value">0</div>
+        </div>
+        <div id="cpuCard" class="card cpu-card">
+          <div class="label">CPU</div>
+          <div id="cpuTotal" class="value">0</div>
+        </div>
+      </div>
+      <div id="centerPanel">
+        <div id="roundLabel" class="value">Round 1</div>
+      </div>
+      <div id="message"></div>
+      <div id="menu">
+        <div id="menuCard">
+          <h1>Six Shot Showdown</h1>
+          <p>Drag upward to throw. Longer flick = more power. Slight left/right controls aim.</p>
+          <button id="startBtn">Start Match</button>
+          <p id="resultLine" style="margin-top: 12px"></p>
+          <p id="statsLine" style="margin-top: 2px"></p>
+        </div>
+      </div>
+      <div id="splash">
+        <div id="splashCard">
+          <h2>Six Shot Showdown</h2>
+          <p class="line2">Mini game series by Saw Aye Chan</p>
+          <p class="line3">Version 1.0, All rights reserved</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
